@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dry Run Studio</title>
+<meta name="description" content="Paste a LeetCode link or your own solution and watch it run step by step on a whiteboard.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230e1a33'/%3E%3Crect x='6' y='14' width='5' height='12' rx='2.5' fill='%230fa3b8'/%3E%3Crect x='13.5' y='6' width='5' height='20' rx='2.5' fill='%23ffb020'/%3E%3Crect x='21' y='10' width='5' height='16' rx='2.5' fill='%231fa35c'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=JetBrains+Mono:wght@500;700&display=swap">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<!-- ============ 1. Connect a model ============ -->
+<section class="connect" id="connect">
+  <div class="c-left">
+    <div class="brand"><span class="mark"><i></i><i></i><i></i></span>Dry Run Studio</div>
+    <h1>Watch any algorithm <em>run</em> on a whiteboard.</h1>
+    <p class="sub">Paste a LeetCode link or your own solution. The board draws the arrays, maps, trees and graphs, then walks through them one step at a time, the way a good teacher would.</p>
+    <div class="board hero" aria-hidden="true">
+      <div class="stage" id="heroStage"></div>
+      <div class="herocap"><b id="heroTag">search 500</b><span id="heroCap">Start at the root.</span></div>
+    </div>
+  </div>
+
+  <div class="card c-card">
+    <ol class="steps">
+      <li>
+        <h2>Choose your model</h2>
+        <div class="providers" role="radiogroup" aria-label="Model provider">
+          <button class="prov" role="radio" aria-checked="true" data-p="anthropic"><i>C</i><b>Claude</b><small>Anthropic</small></button>
+          <button class="prov" role="radio" aria-checked="false" data-p="openai"><i>G</i><b>GPT</b><small>OpenAI</small></button>
+          <button class="prov" role="radio" aria-checked="false" data-p="gemini"><i>G</i><b>Gemini</b><small>Google</small></button>
+        </div>
+      </li>
+      <li>
+        <h2>Paste your API key</h2>
+        <div class="keyrow">
+          <input class="field" id="apiKey" type="password" autocomplete="off" spellcheck="false" aria-label="API key" placeholder="sk-ant-...">
+          <button class="btn" id="btnShowKey" type="button" aria-pressed="false">Show</button>
+        </div>
+        <div class="rowline">
+          <label><input type="checkbox" id="remember"> Remember on this device</label>
+          <a id="keyLink" href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">Get a Claude key</a>
+        </div>
+        <button class="btn primary" id="btnVerify">Verify key</button>
+        <p class="msg" id="keyMsg" hidden></p>
+      </li>
+      <li id="stepModel" hidden>
+        <h2>Pick the model</h2>
+        <select class="field" id="modelSel" aria-label="Model" style="width:100%"></select>
+        <button class="btn go" id="btnOpen">Open the whiteboard</button>
+      </li>
+    </ol>
+    <p class="fine">Your key is kept in this browser only and is sent to nobody except the provider you chose. <button class="linkbtn" id="btnDemoOnly">Just looking? Open the demos without a key.</button></p>
+  </div>
+</section>
+
+<!-- ============ 2. The whiteboard ============ -->
+<div class="wrap" id="app" hidden>
+  <header class="bar">
+    <div class="brand"><span class="mark"><i></i><i></i><i></i></span>Dry Run Studio</div>
+    <div class="right">
+      <button class="connchip" id="connChip" title="Change model or key"><i></i><span id="connText">No model connected</span><u>Change</u></button>
+      <button class="tog" id="togPredict" aria-pressed="true" title="Pause at checkpoints and ask you to predict the next step">Predict mode</button>
+      <button class="tog" id="togSound" aria-pressed="false" title="Play a tone for every step">Sound</button>
+      <button class="tog" id="togVoice" aria-pressed="false" title="Read each step aloud">Voice</button>
+    </div>
+  </header>
+
+  <section class="card composer" aria-label="What do you want to see?">
+    <div class="seg" role="tablist" id="modeSeg">
+      <button role="tab" data-mode="link" aria-selected="true">Problem link<small>Explain the problem to me</small></button>
+      <button role="tab" data-mode="both" aria-selected="false">Link + my solution<small>Animate my code on it</small></button>
+      <button role="tab" data-mode="code" aria-selected="false">Solution + example<small>Dry run, no link needed</small></button>
+    </div>
+    <div class="fields">
+      <label class="f" data-for="link both"><span>LeetCode link</span>
+        <input class="field" id="url" type="url" inputmode="url" autocomplete="off" placeholder="https://leetcode.com/problems/trapping-rain-water/"></label>
+      <label class="f" data-for="both code"><span>Your solution</span>
+        <textarea class="field" id="code" spellcheck="false" placeholder="Paste your solution in any language. It is traced line by line, bugs included."></textarea></label>
+      <label class="f" data-for="both code"><span>Example input <em id="exOpt">optional: one is chosen for you</em></span>
+        <input class="field" id="example" autocomplete="off" placeholder="nums = [2, 7, 11, 15], target = 9" style="font-family:var(--f-mono);font-size:13px"></label>
+      <details class="more" id="stmtBox">
+        <summary>Add the problem statement (for new, premium or non-LeetCode problems)</summary>
+        <textarea class="field" id="stmt" aria-label="Problem statement" placeholder="Paste the full problem text. When present it is used instead of guessing from the link."></textarea>
+      </details>
+    </div>
+    <div class="actions">
+      <span data-for="link">
+        <button class="btn primary" id="btnExplain">Explain the problem</button>
+        <select class="field" id="lang" aria-label="Language for the optimal solution"><option>Python</option><option>Java</option><option>C++</option><option>JavaScript</option></select>
+        <button class="btn" id="btnOptimal">Show an optimal solution</button>
+      </span>
+      <span data-for="both"><button class="btn primary" id="btnTrace">Visualize my solution</button></span>
+      <span data-for="code"><button class="btn primary" id="btnDry">Dry run my code</button></span>
+      <p class="msg" id="slateMsg" hidden></p>
+    </div>
+    <div class="shelf" id="shelfDemos"><span class="lab">Demos</span></div>
+    <div class="shelf" id="shelfRecent" hidden><span class="lab">Your recent</span></div>
+  </section>
+
+  <main class="studio">
+    <div class="stagecol">
+      <div class="titlebar">
+        <h1 id="pTitle">Loading</h1>
+        <span class="pill" id="pDiff"></span>
+        <span class="pill kind" id="pKind"></span>
+        <span id="pTags" class="badges"></span>
+      </div>
+      <div class="examplebar">
+        <span>Example</span><code id="exIn"></code><span>gives</span><code id="exOut"></code>
+        <span class="own"><input class="field" id="customIn" aria-label="Your own example input" placeholder="Your own input, e.g. nums = [3,3], target = 6"><button class="btn small" id="btnRerun">Re-run on my input</button></span>
+      </div>
+
+      <div class="board">
+        <div class="stage" id="stage"></div>
+        <div class="vars" id="vars"></div>
+        <div class="caption"><span class="phase" id="phase"></span><p class="say" id="say" aria-live="polite"></p></div>
+        <div class="busy" id="busy" hidden>
+          <div class="dots"><i></i><i></i><i></i><i></i><i></i></div>
+          <p class="big" id="busyBig">Storyboarding</p>
+          <p id="busySub">The model is tracing the example by hand. This usually takes 30 to 90 seconds.</p>
+          <button class="btn small" id="btnStop">Stop</button>
+        </div>
+      </div>
+
+      <div class="quiz" id="quiz" hidden></div>
+
+      <div class="transport">
+        <button class="tbtn" id="bRestart" aria-label="Restart"><svg viewBox="0 0 16 16"><path d="M2 2h2v12H2zM14 2v12L5 8z"/></svg></button>
+        <button class="tbtn" id="bPrev" aria-label="Previous step"><svg viewBox="0 0 16 16"><path d="M11 2v12L3 8z"/></svg></button>
+        <button class="tbtn play" id="bPlay" aria-label="Play"><svg viewBox="0 0 16 16"><path id="playIcon" d="M4 2l10 6-10 6z"/></svg></button>
+        <button class="tbtn" id="bNext" aria-label="Next step"><svg viewBox="0 0 16 16"><path d="M5 2v12l8-6z"/></svg></button>
+        <div class="timeline" id="timeline" role="slider" aria-label="Step" tabindex="0" aria-valuemin="1"></div>
+        <span class="count" id="count"></span>
+        <select class="field" id="speed" aria-label="Playback speed"><option value="0.6">0.6×</option><option value="1" selected>1×</option><option value="1.5">1.5×</option><option value="2.5">2.5×</option></select>
+      </div>
+      <div class="legend" aria-label="Colour key">
+        <span><i data-role="cur"></i>looking at</span><span><i data-role="cmp"></i>comparing</span><span><i data-role="ok"></i>match or answer</span>
+        <span><i data-role="no"></i>rejected</span><span><i data-role="done"></i>finished</span><span><i data-role="win"></i>in the window</span>
+        <span><kbd>Space</kbd> play <kbd>←</kbd> <kbd>→</kbd> step</span>
+      </div>
+    </div>
+
+    <aside class="card side" aria-label="Notes">
+      <div class="tabs" role="tablist">
+        <button class="tab" role="tab" id="tabBrief" aria-selected="true" data-pane="paneBrief">Brief</button>
+        <button class="tab" role="tab" id="tabCode" aria-selected="false" data-pane="paneCode">Code</button>
+        <button class="tab" role="tab" id="tabAsk" aria-selected="false" data-pane="paneAsk">Ask</button>
+      </div>
+      <div class="pane" id="paneBrief" role="tabpanel"></div>
+      <div class="pane" id="paneCode" role="tabpanel" hidden></div>
+      <div class="pane" id="paneAsk" role="tabpanel" hidden>
+        <p class="muted">Stuck on a step? Ask about exactly what is on the board right now.</p>
+        <div class="sugg" id="askSugg"></div>
+        <div class="chat" id="chat"></div>
+        <form class="askrow" id="askForm"><input class="field" id="askIn" aria-label="Your question" placeholder="Why did the pointer move?" autocomplete="off"><button class="btn primary" id="askBtn">Ask</button></form>
+      </div>
+    </aside>
+  </main>
+</div>
+
+<script src="js/render.js"></script>
+<script src="js/player.js"></script>
+<script src="js/demos.js"></script>
+<script src="js/storyboard.js"></script>
+<script src="js/llm.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
